@@ -1,10 +1,11 @@
 package com.example.userservice.services;
 
-import com.example.userservice.dtos.UserDto;
 import com.example.userservice.exceptions.InvalidPasswordException;
 import com.example.userservice.exceptions.InvalidTokenException;
+import com.example.userservice.models.Role;
 import com.example.userservice.models.Token;
 import com.example.userservice.models.User;
+import com.example.userservice.repositories.RoleRepository;
 import com.example.userservice.repositories.TokenRepository;
 import com.example.userservice.repositories.UserRepository;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -21,22 +23,38 @@ public class UserService {
     private UserRepository userRepository;
     private BCryptPasswordEncoder bCryptPasswordEncoder;
     private TokenRepository tokenRepository;
+    private RoleRepository roleRepository;
 
-    public UserService(UserRepository userRepository,BCryptPasswordEncoder bCryptPasswordEncoder,TokenRepository tokenRepository) {
+    public UserService(UserRepository userRepository,BCryptPasswordEncoder bCryptPasswordEncoder,TokenRepository tokenRepository,RoleRepository roleRepository) {
         this.userRepository = userRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
         this.tokenRepository = tokenRepository;
+        this.roleRepository = roleRepository;
     }
 
-    public User signup(String name,String email, String password) {
+    public User signup(String name, String email, String password, List<String> roles) {
         Optional<User> optionalUser = userRepository.findByEmail(email);
         if(optionalUser.isPresent()) {
             return optionalUser.get();
         }
+
+        List<Role> userRoles = roles.stream().map(role-> {
+            Role userRole;
+            if(roleRepository.findByRoleName(role).isPresent()) {
+                userRole = roleRepository.findByRoleName(role).get();
+            } else {
+                userRole = new Role();
+                userRole.setRoleName(role);
+                roleRepository.save(userRole);
+            }
+            return userRole;
+        }).toList();
+
         User user = new User();
         user.setEmail(email);
         user.setName(name);
         user.setIsEmailVerified(false);
+        user.setRoles(userRoles);
 
         user.setHashedPassword(bCryptPasswordEncoder.encode(password));
 

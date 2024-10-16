@@ -26,7 +26,7 @@ public class UserController {
     @PostMapping("/signup")
     public UserDto signup(@RequestBody SignupRequestDto requestDto){
 
-        User user = userService.signup(requestDto.getUsername(),requestDto.getEmail(),requestDto.getPassword());
+        User user = userService.signup(requestDto.getUsername(),requestDto.getEmail(),requestDto.getPassword(),requestDto.getRoles());
 
         return UserDto.from(user);
     }
@@ -47,7 +47,11 @@ public class UserController {
     }
 
     @PostMapping("/validate/{token}")
-    public UserDto validateToken(@PathVariable String token) throws InvalidTokenException {
-        return UserDto.from(userService.validateToken(token));
+    public UserDto validateToken(@PathVariable String token) {
+        try{
+            return UserDto.from(userService.validateToken(token));
+        }catch(InvalidTokenException e){
+            return null;
+        }
     }
 }
