@@ -54,4 +54,10 @@ public class UserController {
             return null;
         }
     }
+
+    @GetMapping("/{id}")
+    public String getUsers(@PathVariable("id") Long id){
+        System.out.println("received request for a user");
+        return "hello from user service " + id;
+    }
 }
