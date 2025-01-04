@@ -1,5 +1,7 @@
 package com.example.userservice.services;
 
+import com.example.userservice.confirgurations.KafkaProducerClient;
+import com.example.userservice.dtos.SendEmailDto;
 import com.example.userservice.exceptions.InvalidPasswordException;
 import com.example.userservice.exceptions.InvalidTokenException;
 import com.example.userservice.models.Role;
@@ -8,7 +10,10 @@ import com.example.userservice.models.User;
 import com.example.userservice.repositories.RoleRepository;
 import com.example.userservice.repositories.TokenRepository;
 import com.example.userservice.repositories.UserRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -24,15 +29,19 @@ public class UserService {
     private BCryptPasswordEncoder bCryptPasswordEncoder;
     private TokenRepository tokenRepository;
     private RoleRepository roleRepository;
+    private KafkaProducerClient kafkaProducer;
+    private ObjectMapper objectMapper;
 
-    public UserService(UserRepository userRepository,BCryptPasswordEncoder bCryptPasswordEncoder,TokenRepository tokenRepository,RoleRepository roleRepository) {
+    public UserService(UserRepository userRepository,BCryptPasswordEncoder bCryptPasswordEncoder,TokenRepository tokenRepository,RoleRepository roleRepository,KafkaProducerClient kafkaProducer, ObjectMapper objectMapper) {
         this.userRepository = userRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
         this.tokenRepository = tokenRepository;
         this.roleRepository = roleRepository;
+        this.kafkaProducer = kafkaProducer;
+        this.objectMapper = objectMapper;
     }
 
-    public User signup(String name, String email, String password, List<String> roles) {
+    public User signup(String name, String email, String password, List<String> roles)  {
         Optional<User> optionalUser = userRepository.findByEmail(email);
         if(optionalUser.isPresent()) {
             return optionalUser.get();
@@ -58,6 +67,19 @@ public class UserService {
 
         user.setHashedPassword(bCryptPasswordEncoder.encode(password));
 
+        //once the sign is complete, send a message to kafka for sending an email to the user.
+        SendEmailDto emailDto = new SendEmailDto();
+        emailDto.setTo(user.getEmail());
+        emailDto.setSubject("welcome to the site");
+        emailDto.setFrom("admin@ecommerce.com");
+        emailDto.setBody("thanks for joining us");
+
+//        try{
+//            kafkaProducer.sendMessage("userSignUp",objectMapper.writeValueAsString(user));
+//        }
+//        catch(JsonProcessingException e){
+//            System.out.println("something went wrong while sending a message to kafka "+e);
+//        }
         return userRepository.save(user);
     }
 

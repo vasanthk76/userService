@@ -1,5 +1,5 @@
 package com.example.userservice.controllers;
-
+import com.example.userservice.confirgurations.KafkaProducerClient;
 import com.example.userservice.dtos.LoginRequestDto;
 import com.example.userservice.dtos.LogoutRequestDto;
 import com.example.userservice.dtos.UserDto;
@@ -9,6 +9,8 @@ import com.example.userservice.exceptions.InvalidTokenException;
 import com.example.userservice.models.Token;
 import com.example.userservice.models.User;
 import com.example.userservice.services.UserService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -18,17 +20,25 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/users")
 public class UserController {
     private UserService userService;
+    private KafkaProducerClient kafkaProducerClient;
+    private ObjectMapper objectMapper;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService,KafkaProducerClient kafkaProducerClient,ObjectMapper objectMapper) {
         this.userService = userService;
+        this.kafkaProducerClient = kafkaProducerClient;
+        this.objectMapper = objectMapper;
     }
 
     @PostMapping("/signup")
     public UserDto signup(@RequestBody SignupRequestDto requestDto){
 
         User user = userService.signup(requestDto.getUsername(),requestDto.getEmail(),requestDto.getPassword(),requestDto.getRoles());
+//        System.out.println("after signup");
+
+//        kafkaProducerClient.sendMessage("userSignUp","from producer");
 
         return UserDto.from(user);
+//        return null;
     }
 
     @PostMapping("/login")
